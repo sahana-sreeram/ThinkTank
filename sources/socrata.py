@@ -90,6 +90,7 @@ class SocrataConnector(Connector):
                             geography=geography if domain == "data.boston.gov" else None,
                             target_geography=geography,
                             relevance_score=rel,
+                            url=permalink or f"https://{domain}/d/{rid}",
                         )
                     )
         return items

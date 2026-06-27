@@ -136,6 +136,21 @@ def _mock_evidence(queries: List[str], geography: Optional[str]):
 # Reused across calls so the embedder + Chroma collection are initialized once.
 _CACHE = None
 
+# Process-local ledger of every evidence item returned this session, keyed by
+# source_id. Lets the UI / downstream code resolve a citation id back to its full
+# source (title, url, …) without re-querying — and without needing the embedder.
+_EVIDENCE_REGISTRY: dict = {}
+
+
+def get_evidence(source_id: str):
+    """Return the full EvidenceItem for a citation id, or None if unknown."""
+    return _EVIDENCE_REGISTRY.get(source_id)
+
+
+def resolve_citations(source_ids):
+    """Map citation ids to full EvidenceItems (skips ids not seen this session)."""
+    return [_EVIDENCE_REGISTRY[i] for i in source_ids if i in _EVIDENCE_REGISTRY]
+
 
 def _get_cache():
     global _CACHE
@@ -216,6 +231,9 @@ def retrieve_policy_evidence(
         items = _hybrid_evidence(queries, geography, source_types, top_k)
 
     out = _rank_and_dedup(items, top_k)
+    # Record so citations (evidence_ids) can be resolved to titles/links later.
+    for e in out:
+        _EVIDENCE_REGISTRY[e.source_id] = e
     logger.info(
         "retrieve_policy_evidence returned %d items (mock=%s)", len(out), MOCK_RETRIEVAL
     )

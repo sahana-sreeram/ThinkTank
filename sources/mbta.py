@@ -80,5 +80,6 @@ class MBTAConnector(Connector):
                 geography=geography or "Boston, MA",
                 target_geography=geography,
                 relevance_score=0.7,
+                url="https://www.mbta.com/alerts/subway",
             )
         ]

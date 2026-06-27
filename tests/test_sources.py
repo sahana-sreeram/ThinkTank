@@ -68,8 +68,28 @@ def test_openalex_maps_to_valid_evidence(monkeypatch):
     assert it.source_id == "OPENALEX-W123"
     assert it.source_type == "academic"
     assert it.text == "Congestion pricing works"  # reconstructed from inverted index
+    assert it.url == "https://openalex.org/W123"  # link surfaced for the UI
     assert 0.0 <= it.credibility_score <= 1.0
     assert 0.0 <= it.relevance_score <= 1.0
+
+
+def test_registry_resolves_citation_to_full_source():
+    """retrieve_policy_evidence records items so the UI can resolve ids -> source."""
+    import config
+
+    # Mock retrieval path records placeholder items into the registry.
+    config_was = config.MOCK_RETRIEVAL
+    config.MOCK_RETRIEVAL = True
+    try:
+        items = retrieval.retrieve_policy_evidence(["x"], geography="Boston, MA", top_k=3)
+    finally:
+        config.MOCK_RETRIEVAL = config_was
+    assert items
+    sid = items[0].source_id
+    resolved = retrieval.get_evidence(sid)
+    assert resolved is not None and resolved.source_id == sid
+    assert resolved.title  # has a human-readable title for display
+    assert retrieval.resolve_citations([sid, "UNKNOWN-ID"]) == [resolved]
 
 
 def test_connector_never_raises_on_bad_payload(monkeypatch):

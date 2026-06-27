@@ -121,5 +121,6 @@ class CensusACSConnector(Connector):
                 geography=geography,
                 target_geography=geography,
                 relevance_score=0.8,
+                url="https://data.census.gov/table?q=B08301&g=050XX00US" + state + county,
             )
         ]

@@ -57,6 +57,9 @@ class SemanticScholarConnector(Connector):
                     continue
                 seen.add(pid)
                 year = paper.get("year")
+                ext = paper.get("externalIds") or {}
+                doi = ext.get("DOI")
+                url = paper.get("url") or (f"https://doi.org/{doi}" if doi else None)
                 rel = 0.9 - 0.5 * (rank / n) if n else 0.6
                 items.append(
                     self.make_item(
@@ -67,6 +70,7 @@ class SemanticScholarConnector(Connector):
                         publication_date=str(year) if year else None,
                         target_geography=geography,
                         relevance_score=rel,
+                        url=url,
                     )
                 )
         return items

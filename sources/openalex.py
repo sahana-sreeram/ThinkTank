@@ -72,6 +72,10 @@ class OpenAlexConnector(Connector):
                 if isinstance(src, dict):
                     org = src.get("display_name")
                 year = work.get("publication_year")
+                # Prefer the DOI link, then the journal landing page, then OpenAlex.
+                doi = work.get("doi")
+                landing = loc.get("landing_page_url") if isinstance(loc, dict) else None
+                url = doi or landing or work.get("id")
                 # API relevance descends with rank within a query.
                 rel = 0.9 - 0.5 * (rank / n) if n else 0.6
                 items.append(
@@ -84,6 +88,7 @@ class OpenAlexConnector(Connector):
                         geography=None,  # papers are not geography-bound
                         target_geography=geography,
                         relevance_score=rel,
+                        url=url,
                     )
                 )
         return items

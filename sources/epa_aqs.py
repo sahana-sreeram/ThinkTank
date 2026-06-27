@@ -92,5 +92,6 @@ class EPAAQSConnector(Connector):
                 geography=geography,
                 target_geography=geography,
                 relevance_score=0.75,
+                url="https://www.epa.gov/outdoor-air-quality-data",
             )
         ]

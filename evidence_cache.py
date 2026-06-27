@@ -26,6 +26,7 @@ _META_KEYS = (
     "publication_date",
     "geography",
     "page",
+    "url",
     "credibility_score",
 )
 
@@ -138,6 +139,7 @@ class EvidenceCache:
                     geography=meta.get("geography"),
                     page=meta.get("page"),
                     text=doc,
+                    url=meta.get("url"),
                     relevance_score=round(max(0.0, min(1.0, sim)), 3),
                     credibility_score=float(meta.get("credibility_score", 0.0)),
                 )

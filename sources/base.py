@@ -99,6 +99,7 @@ class Connector:
         target_geography: Optional[str] = None,
         relevance_score: float = 0.5,
         page: Optional[int] = None,
+        url: Optional[str] = None,
     ) -> EvidenceItem:
         """Build an :class:`EvidenceItem` with a deterministic credibility score.
 
@@ -115,6 +116,7 @@ class Connector:
             geography=geography,
             page=page,
             text=clamp_text(text),
+            url=url,
             relevance_score=round(max(0.0, min(1.0, relevance_score)), 3),
             credibility_score=score_source(
                 self.source_type,

@@ -12,7 +12,7 @@ import asyncio
 from fastapi import FastAPI, WebSocket, UploadFile, File, HTTPException, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
-from models import Meeting, Expert, Project, FileData, FileReference
+from models import Meeting, Expert, Project, FileData, FileReference, PolicyRequest
 from utils import load_projects, save_projects, load_templates, save_templates
 
 from ingestion import process_documents
@@ -470,4 +470,155 @@ async def meeting_ws(websocket: WebSocket):
     # signal end
     await websocket.send_json({"name": "__end__", "content": "Meeting complete"})
     await asyncio.sleep(0.01)
+    await websocket.close()
+
+
+# ── Policy Analysis WebSocket ──────────────────────────────────────────────────
+
+@app.websocket("/ws/policy")
+async def policy_ws(websocket: WebSocket):
+    """Stream the policy analysis pipeline to the frontend.
+
+    Expects: { "query": str }
+    Streams:  { "name": str, "content": str } messages, ending with __end__.
+    """
+    await websocket.accept()
+
+    try:
+        init = await asyncio.wait_for(websocket.receive_json(), timeout=30.0)
+    except asyncio.TimeoutError:
+        await websocket.close(code=1008)
+        return
+    except Exception as e:
+        await websocket.close(code=1003)
+        return
+
+    query = (init.get("query") or "").strip()
+    if not query:
+        await websocket.send_json({"name": "error", "content": "No query provided."})
+        await websocket.close()
+        return
+
+    async def send(name: str, content: str) -> None:
+        try:
+            await websocket.send_json({"name": name, "content": content})
+        except Exception:
+            pass
+
+    # ── Import node functions lazily so startup stays fast ──────────────────
+    from orchestrator import (
+        node_plan_policy,
+        node_research,
+        node_stakeholder_research,
+        node_synthesize,
+        node_recommend,
+        node_forecast,
+        node_finalize,
+        _build_result,
+    )
+
+    # Build a minimal PolicyRequest from the free-text query
+    request = PolicyRequest(
+        question=query,
+        geography="general",
+        objective=f"Analyze and provide a policy recommendation for: {query}",
+    )
+
+    state = {
+        "run_id": uuid.uuid4().hex[:12],
+        "request": request,
+        "model_events": [],
+        "events": [],
+    }
+
+    loop = asyncio.get_event_loop()
+
+    # Each tuple: (ws_name_prefix, node_fn, human_label)
+    pipeline = [
+        ("plan_policy",           node_plan_policy,           "Policy Director planning…"),
+        ("node_research",         node_research,              "Research agent gathering evidence…"),
+        ("stakeholder",           node_stakeholder_research,  "Stakeholder analysis in progress…"),
+        ("synthesize_research",   node_synthesize,            "Synthesizing findings…"),
+        ("implement",             node_recommend,             "Building recommendation…"),
+        ("run_forecast",          node_forecast,              "Running deterministic forecast…"),
+        ("finalize_result",       node_finalize,              "Finalizing briefing…"),
+    ]
+
+    for ws_name, node_fn, label in pipeline:
+        await send(ws_name, label)
+        try:
+            state = await loop.run_in_executor(None, node_fn, state)
+            # Forward the latest activity log entry as a follow-up message
+            if state.get("events"):
+                await send(ws_name, state["events"][-1])
+        except Exception as exc:
+            await send("error", f"{label} failed: {exc}")
+            await websocket.close()
+            return
+
+    # ── Stream structured results after all nodes complete ──────────────────
+    result = _build_result(state)
+
+    # Evidence → Stakeholder Intel cell
+    for item in result.evidence:
+        await send(
+            "stakeholder_evidence",
+            f"**{item.title}**\n{item.text[:400]}{'…' if len(item.text) > 400 else ''}",
+        )
+
+    # Stakeholder findings → Stakeholder Intel cell
+    for sr in result.research:
+        for finding in sr.findings[:3]:
+            await send(
+                f"stakeholder_{sr.stakeholder.lower().replace(' ', '_')}",
+                f"[{sr.stakeholder}] {finding.claim}",
+            )
+
+    # Synthesis → Recommendation cell
+    if result.synthesis:
+        await send("synthesize_research", result.synthesis.summary)
+        for pt in result.synthesis.consensus_points[:5]:
+            await send("synthesize_research", f"• {pt}")
+
+    # Recommendation → Recommendation cell
+    if result.recommendation:
+        rec = result.recommendation
+        await send("implement_recommendation", rec.summary)
+        if rec.recommended_actions:
+            await send(
+                "implement_actions",
+                "\n".join(f"• {a}" for a in rec.recommended_actions),
+            )
+        if rec.risks:
+            await send(
+                "implement_risks",
+                "**Risks:**\n" + "\n".join(f"• {r}" for r in rec.risks),
+            )
+        if rec.implementation_plan and rec.implementation_plan.steps:
+            steps_text = "\n\n".join(
+                f"**{s.phase}**\n" + "\n".join(f"• {a}" for a in s.actions)
+                for s in rec.implementation_plan.steps
+            )
+            await send("implement_plan", steps_text)
+
+    # Forecast → Forecast cell
+    if result.forecast:
+        fc = result.forecast
+        if fc.mode == "numeric":
+            for scenario_attr in ("baseline", "conservative", "expected", "optimistic"):
+                sc = getattr(fc, scenario_attr, None)
+                if sc:
+                    lines = [f"**{sc.name}**"]
+                    if sc.gross_revenue:  lines.append(f"Revenue: ${sc.gross_revenue:,.0f}")
+                    if sc.net_revenue:    lines.append(f"Net: ${sc.net_revenue:,.0f}")
+                    if sc.trip_reduction: lines.append(f"Trip reduction: {sc.trip_reduction:.1%}")
+                    if sc.emissions_change: lines.append(f"Emissions Δ: {sc.emissions_change:.1%}")
+                    await send("run_forecast", "\n".join(lines))
+        else:
+            for item in fc.qualitative:
+                await send("run_forecast", item)
+        if fc.assumptions:
+            await send("run_forecast", "**Assumptions:**\n" + "\n".join(f"• {a}" for a in fc.assumptions))
+
+    await send("__end__", "Analysis complete.")
     await websocket.close()

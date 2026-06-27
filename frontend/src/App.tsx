@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Layout from "@/components/Layout";
 import Dashboard from "@/pages/Dashboard";
+import PolicyBriefing from "@/pages/PolicyBriefing";
 import Projects from "@/pages/Projects";
 import Experts from "@/pages/Experts";
 import Meetings from "@/pages/Meetings";
@@ -24,22 +25,29 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Layout>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/projects" element={<Projects />} />
-            <Route path="/projects/new" element={<NewProjectForm />} />
-            <Route path="/projects/:projectTitle/meetings" element={<ProjectMeetings />} />
-            <Route path="/experts" element={<Experts />} />
-            <Route path="/experts/new" element={<NewExpertForm />} />
-            <Route path="/meetings" element={<Meetings />} />
-            <Route path="/meetings/new" element={<NewMeetingForm />} />
-            <Route path="/meeting/:projectTitle/:meetingTopic" element={<MeetingViewer />} />
-            <Route path="/meeting-stream" element={<MeetingStream />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Layout>
+        <Routes>
+          {/* Standalone full-screen routes (no sidebar) */}
+          <Route path="/policy" element={<PolicyBriefing />} />
+
+          {/* Sidebar layout routes */}
+          <Route path="/*" element={
+            <Layout>
+              <Routes>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/projects" element={<Projects />} />
+                <Route path="/projects/new" element={<NewProjectForm />} />
+                <Route path="/projects/:projectTitle/meetings" element={<ProjectMeetings />} />
+                <Route path="/experts" element={<Experts />} />
+                <Route path="/experts/new" element={<NewExpertForm />} />
+                <Route path="/meetings" element={<Meetings />} />
+                <Route path="/meetings/new" element={<NewMeetingForm />} />
+                <Route path="/meeting/:projectTitle/:meetingTopic" element={<MeetingViewer />} />
+                <Route path="/meeting-stream" element={<MeetingStream />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Layout>
+          } />
+        </Routes>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

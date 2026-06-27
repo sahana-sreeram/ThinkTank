@@ -29,6 +29,7 @@ from agents import (
     plan_policy,
     red_team_review,
     revise_recommendation,
+    run_research,
     run_stakeholder_research,
     synthesize_research,
 )
@@ -68,6 +69,16 @@ def node_plan_policy(state: PolicyState) -> PolicyState:
     state["tasks"] = tasks
     _emit(state, "policy_director")
     _log(state, f"Policy Director created research plan with {len(tasks)} tasks.")
+    return state
+
+
+def node_research(state: PolicyState) -> PolicyState:
+    request: PolicyRequest = state["request"]
+    briefs = run_research(request, state["tasks"])
+    state["research_briefs"] = briefs
+    n_research = sum(1 for t in state["tasks"] if t.agent_type == "research")
+    _emit(state, "research")
+    _log(state, f"{len(briefs)} research agent(s) gathered evidence ({n_research} tasks).")
     return state
 
 
@@ -166,6 +177,7 @@ def _build_result(state: PolicyState) -> PolicyRunResult:
         objective=state.get("objective"),
         stakeholders=state.get("stakeholders", []),
         tasks=state.get("tasks", []),
+        research_briefs=state.get("research_briefs", []),
         research=state.get("research", []),
         synthesis=state.get("synthesis"),
         recommendation=state.get("recommendation"),

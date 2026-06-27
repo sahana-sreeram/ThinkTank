@@ -16,7 +16,7 @@ plan, risks, and forecast scenarios. Transportation is just the first worked exa
 ## Workflow (LangGraph state graph)
 
 ```
-START → plan_policy → stakeholder_research → synthesize_research
+START → plan_policy → research → stakeholder_research → synthesize_research
       → implementation_and_recommendation → red_team_review
       → should_revise? ──yes─→ revise_recommendation ─→ red_team_review
                       └──no──→ run_forecast → finalize_result → END
@@ -25,15 +25,26 @@ START → plan_policy → stakeholder_research → synthesize_research
 Revision loops are bounded by `config.MAX_REVISION_LOOPS` (default 1).
 `graph.py` falls back to an equivalent sequential executor if LangGraph is absent.
 
-## Four logical agents
-- **Policy Director** (`agents/policy_director.py`) — objective, stakeholder roster,
-  task delegation, revision.
-- **Stakeholder Research** (`agents/stakeholder_research.py`) — one shared agent
-  configured into multiple perspectives; cited findings via RAG.
-- **Implementation** (`agents/implementation_agent.py`) — synthesis + recommendation
-  + phased plan.
-- **Red-Team & Forecasting** (`agents/red_team_agent.py`) — critique + deterministic
-  forecast parameters.
+## Agent roster
+A **Policy Director** that plans and **assigns each worker its agent type + skills**,
+three worker agent types, and a **Red-Team** for the revision loop:
+- **Policy Director** (`agents/policy_director.py`) — defines objective, picks the
+  stakeholder roster, creates research + stakeholder tasks, and **chooses each task's
+  skills** from the skill registry. Also revises the recommendation.
+- **Research agent** (`agents/research_agent.py`) — gathers objective, cited evidence
+  on sub-topics (no perspective). Output: `ResearchBrief`s.
+- **Stakeholder agent** (`agents/stakeholder_research.py`) — one shared implementation
+  instantiated into multiple perspectives; cited findings via RAG.
+- **Data Analyst** (`agents/data_analyst.py`) — synthesis + recommendation + phased
+  plan.
+- **Red-Team** (`agents/red_team_agent.py`) — adversarial critique driving revision.
+
+## Orchestrator-assigned skills
+Skills are **not** hardcoded on agents. `skills_registry.py` reads `skills/*/SKILL.md`
+into a catalog; the Director chooses, per task, which skills the worker needs and
+attaches them to the `PolicyTask`. Each worker loads exactly those via
+`build_packet(skill_keys=...)`. So the same stakeholder agent runs with different
+skills depending on what the Director decides the task requires.
 
 ## Context strategy
 No full transcript is passed to agents. `context_builder.build_packet()` assembles a

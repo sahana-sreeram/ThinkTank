@@ -31,6 +31,11 @@ SourceType = Literal[
 
 Severity = Literal["low", "medium", "high"]
 
+# Worker agent types the Policy Director dispatches. The Director also assigns each
+# task a skill set (from skills_registry) — skills are orchestrator-decided, not
+# hardcoded on the agent.
+AgentType = Literal["research", "stakeholder", "data_analyst"]
+
 
 class EvidenceItem(BaseModel):
     """A single retrieved, citable chunk of evidence with provenance metadata."""
@@ -94,11 +99,18 @@ class StakeholderProfile(BaseModel):
 
 
 class PolicyTask(BaseModel):
-    """A research task delegated by the Director to a stakeholder agent."""
+    """A task delegated by the Director to a worker agent.
+
+    `agent_type` says which worker handles it; `skills` are the skill keys the
+    Director decided this task needs (assigned at plan time from the registry).
+    `stakeholder_key` is only meaningful for stakeholder tasks.
+    """
 
     task_id: str
     description: str
-    stakeholder_key: str
+    agent_type: AgentType = "stakeholder"
+    skills: list[str] = Field(default_factory=list)
+    stakeholder_key: str = ""
     queries: list[str] = Field(default_factory=list)
     required_outputs: list[str] = Field(default_factory=list)
 
@@ -119,6 +131,17 @@ class StakeholderResearchResult(BaseModel):
     data_gaps: list[str] = Field(default_factory=list)
     # Compact handoff summary stored alongside the full result (context strategy).
     handoff_summary: str = ""
+
+
+class ResearchBrief(BaseModel):
+    """Output of a Research agent: objective, cited findings on one sub-topic
+    (no stakeholder perspective). Feeds the stakeholders and the synthesis."""
+
+    topic: str
+    findings: list[Finding] = Field(default_factory=list)
+    evidence_ids: list[str] = Field(default_factory=list)
+    summary: str = ""
+    skills_used: list[str] = Field(default_factory=list)
 
 
 class ResearchSynthesis(BaseModel):
@@ -289,6 +312,7 @@ class PolicyRunResult(BaseModel):
     objective: Optional[PolicyObjective] = None
     stakeholders: list[StakeholderProfile] = Field(default_factory=list)
     tasks: list[PolicyTask] = Field(default_factory=list)
+    research_briefs: list[ResearchBrief] = Field(default_factory=list)
     research: list[StakeholderResearchResult] = Field(default_factory=list)
     synthesis: Optional[ResearchSynthesis] = None
     recommendation: Optional[PolicyRecommendation] = None

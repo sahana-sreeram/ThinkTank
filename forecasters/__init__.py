@@ -14,10 +14,10 @@ from typing import Optional
 
 from models import PolicyRequest
 
-from forecasters import transportation
+from forecasters import housing, transportation
 
 # Ordered registry; first match wins.
-REGISTRY: list[ModuleType] = [transportation]
+REGISTRY: list[ModuleType] = [transportation, housing]
 
 
 def detect_domain(request: PolicyRequest) -> Optional[ModuleType]:

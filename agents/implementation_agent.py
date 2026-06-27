@@ -4,14 +4,17 @@ OWNER: Person 3 (impl/forecast/evals). Synthesizes stakeholder findings, analyze
 feasibility, compares alternatives, and produces a recommendation with a phased
 implementation plan and success metrics.
 
-Public functions (frozen):
-    synthesize_research(request, research) -> ResearchSynthesis
-    create_policy_recommendation(request, research) -> PolicyRecommendation
+Real path (POLICY_MOCK_ANALYSIS=0) follows the Director template and falls back to
+the deterministic mock on any failure.
 """
 
 from __future__ import annotations
 
-from config import MOCK_MODE
+from pydantic import BaseModel, Field
+
+from agent_builder import run_structured
+from config import MOCK_ANALYSIS
+from context_builder import build_packet
 from models import (
     Finding,
     ImpactAnalysis,
@@ -25,19 +28,21 @@ from models import (
 )
 
 
-def synthesize_research(
-    request: PolicyRequest,
-    research: list[StakeholderResearchResult],
+def _evidence_ids(research: list[StakeholderResearchResult]) -> list[str]:
+    return sorted({eid for r in research for f in r.findings for eid in f.evidence_ids})
+
+
+# --- Synthesis -------------------------------------------------------------
+class _SynthOut(BaseModel):
+    summary: str
+    consensus_points: list[str] = Field(default_factory=list)
+    disagreements: list[str] = Field(default_factory=list)
+
+
+def _mock_synthesis(
+    request: PolicyRequest, research: list[StakeholderResearchResult]
 ) -> ResearchSynthesis:
-    """Combine stakeholder findings into a cross-cutting synthesis."""
-    if not MOCK_MODE:
-        raise NotImplementedError("Real synthesize_research not implemented yet (P3).")
-
     all_findings: list[Finding] = [f for r in research for f in r.findings]
-    evidence_ids = sorted({eid for f in all_findings for eid in f.evidence_ids})
-    data_gaps = sorted({g for r in research for g in r.data_gaps})
-    positions = [r.likely_position for r in research]
-
     return ResearchSynthesis(
         summary=f"Across {len(research)} stakeholder perspectives, there is qualified "
         f"support for action on '{request.question}', contingent on equity safeguards.",
@@ -45,30 +50,62 @@ def synthesize_research(
             "Some intervention is justified by the evidence.",
             "Mitigations are required to protect vulnerable groups.",
         ],
-        disagreements=[
-            "Stakeholders differ on the acceptable level of commuter cost.",
-        ],
+        disagreements=["Stakeholders differ on the acceptable level of cost."],
         key_findings=all_findings[:5],
-        evidence_ids=evidence_ids,
-        data_gaps=data_gaps,
+        evidence_ids=_evidence_ids(research),
+        data_gaps=sorted({g for r in research for g in r.data_gaps}),
     )
 
 
-def create_policy_recommendation(
-    request: PolicyRequest,
-    research: list[StakeholderResearchResult],
-) -> PolicyRecommendation:
-    """Produce a recommendation, alternatives, and a phased implementation plan."""
-    if not MOCK_MODE:
-        raise NotImplementedError(
-            "Real create_policy_recommendation not implemented yet (P3)."
-        )
+def synthesize_research(
+    request: PolicyRequest, research: list[StakeholderResearchResult]
+) -> ResearchSynthesis:
+    """Combine stakeholder findings into a cross-cutting synthesis."""
+    if MOCK_ANALYSIS:
+        return _mock_synthesis(request, research)
 
-    evidence_ids = sorted(
-        {eid for r in research for f in r.findings for eid in f.evidence_ids}
+    prior = [f"{r.stakeholder}: {r.handoff_summary}" for r in research]
+    packet = build_packet(
+        request,
+        perspective="You synthesize multiple stakeholder findings.",
+        prior_findings=[Finding(claim=p) for p in prior],
+        skill_keys=["policy-analysis"],
+        output_schema_name="_SynthOut",
     )
-    topic = request.question.rstrip("?")
-    plan = ImplementationPlan(
+    prompt = packet.to_prompt() + (
+        "\n\nReturn JSON with keys: summary (string), consensus_points[], "
+        "disagreements[]."
+    )
+    out, _ = run_structured("synthesis", prompt, _SynthOut)
+    if out is None:
+        return _mock_synthesis(request, research)
+    base = _mock_synthesis(request, research)  # reuse programmatic findings/evidence
+    base.summary = out.summary or base.summary
+    base.consensus_points = out.consensus_points or base.consensus_points
+    base.disagreements = out.disagreements or base.disagreements
+    return base
+
+
+# --- Recommendation --------------------------------------------------------
+class _StepOut(BaseModel):
+    phase: str
+    actions: list[str] = Field(default_factory=list)
+    timeline: str | None = None
+
+
+class _RecOut(BaseModel):
+    summary: str
+    recommended_actions: list[str] = Field(default_factory=list)
+    alternatives: list[str] = Field(default_factory=list)
+    benefits: list[str] = Field(default_factory=list)
+    risks: list[str] = Field(default_factory=list)
+    equity_effects: list[str] = Field(default_factory=list)
+    confidence: float = 0.6
+    steps: list[_StepOut] = Field(default_factory=list)
+
+
+def _default_plan(request: PolicyRequest) -> ImplementationPlan:
+    return ImplementationPlan(
         steps=[
             ImplementationStep(
                 phase="Phase 1: Design & Authorization",
@@ -109,6 +146,11 @@ def create_policy_recommendation(
         ],
     )
 
+
+def _mock_recommendation(
+    request: PolicyRequest, research: list[StakeholderResearchResult]
+) -> PolicyRecommendation:
+    topic = request.question.rstrip("?")
     return PolicyRecommendation(
         summary=f"Adopt a phased, equity-protected approach to '{topic}' in "
         f"{request.geography}, piloted before full rollout and monitored against "
@@ -132,7 +174,7 @@ def create_policy_recommendation(
             "Vulnerable groups could be disproportionately burdened without safeguards",
             "Targeted reinvestment can offset burden if directed to underserved groups",
         ],
-        evidence_ids=evidence_ids,
+        evidence_ids=_evidence_ids(research),
         confidence=0.7,
         impact=ImpactAnalysis(
             economic="Net positive if benefits are realized; transition costs for some groups.",
@@ -141,7 +183,7 @@ def create_policy_recommendation(
             operational="Feasible with established delivery mechanisms.",
             legal="Requires confirmation of authorizing authority.",
         ),
-        implementation_plan=plan,
+        implementation_plan=_default_plan(request),
         alternatives_detail=[
             PolicyAlternative(
                 name="No action",
@@ -156,4 +198,56 @@ def create_policy_recommendation(
                 cons=["Weaker effect on the objective", "May not reach key groups"],
             ),
         ],
+    )
+
+
+def create_policy_recommendation(
+    request: PolicyRequest, research: list[StakeholderResearchResult]
+) -> PolicyRecommendation:
+    """Produce a recommendation, alternatives, and a phased implementation plan."""
+    if MOCK_ANALYSIS:
+        return _mock_recommendation(request, research)
+
+    prior = [f"{r.stakeholder}: {r.handoff_summary}" for r in research]
+    packet = build_packet(
+        request,
+        perspective="You design the recommended policy and implementation plan.",
+        prior_findings=[Finding(claim=p) for p in prior],
+        skill_keys=["policy-analysis"],
+        output_schema_name="_RecOut",
+    )
+    prompt = packet.to_prompt() + (
+        "\n\nReturn JSON with keys: summary, recommended_actions[], alternatives[], "
+        "benefits[], risks[], equity_effects[], confidence (0-1), steps (array of "
+        "{phase, actions[], timeline}). Include at least 3 implementation steps and "
+        "discuss equity_effects explicitly."
+    )
+    out, _ = run_structured("implementation_agent", prompt, _RecOut)
+    if out is None or not out.recommended_actions:
+        return _mock_recommendation(request, research)
+
+    plan = (
+        ImplementationPlan(
+            steps=[
+                ImplementationStep(phase=s.phase, actions=s.actions, timeline=s.timeline)
+                for s in out.steps
+            ],
+            success_metrics=_default_plan(request).success_metrics,
+            monitoring=_default_plan(request).monitoring,
+        )
+        if out.steps
+        else _default_plan(request)
+    )
+    return PolicyRecommendation(
+        summary=out.summary,
+        recommended_actions=out.recommended_actions,
+        alternatives=out.alternatives,
+        benefits=out.benefits,
+        risks=out.risks,
+        equity_effects=out.equity_effects or _mock_recommendation(request, research).equity_effects,
+        evidence_ids=_evidence_ids(research),
+        confidence=out.confidence,
+        impact=_mock_recommendation(request, research).impact,
+        implementation_plan=plan,
+        alternatives_detail=_mock_recommendation(request, research).alternatives_detail,
     )

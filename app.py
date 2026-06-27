@@ -20,6 +20,7 @@ import streamlit as st
 
 from forecasters import detect_domain
 from models import PolicyRequest, PolicyRunResult
+from storage import list_runs, load_run
 
 EXAMPLE_RESULT = os.path.join("examples", "sample_result.json")
 
@@ -53,10 +54,27 @@ def render_activity(res: PolicyRunResult):
     st.caption(f"Model calls — local: {local} · escalated: {esc} · revisions: {res.revisions}")
 
 
+def render_research(res: PolicyRunResult):
+    if not res.research_briefs:
+        return
+    st.subheader("🔎 Research")
+    for b in res.research_briefs:
+        with st.expander(f"{b.topic}  ·  skills: {', '.join(b.skills_used) or '—'}"):
+            st.caption(b.summary)
+            for f in b.findings:
+                st.markdown(f"- {f.claim}  _[{', '.join(f.evidence_ids) or 'no citation'}]_")
+
+
 def render_stakeholders(res: PolicyRunResult):
     st.subheader("👥 Stakeholder Views")
+    # Map stakeholder name -> assigned skills (Director-decided) for display.
+    skills_by_name = {s.name: s.skills for s in res.stakeholders}
     for r in res.research:
-        with st.expander(f"{r.stakeholder} — {r.likely_position}"):
+        skills = skills_by_name.get(r.stakeholder, [])
+        label = f"{r.stakeholder} — {r.likely_position}"
+        with st.expander(label):
+            if skills:
+                st.caption("Skills assigned by orchestrator: " + ", ".join(skills))
             for f in r.findings:
                 st.markdown(f"**Finding:** {f.claim}")
                 st.caption(
@@ -198,6 +216,21 @@ def main():
     run_clicked = st.sidebar.button("Run Policy Analysis", type="primary")
     show_example = st.sidebar.button("Load example result")
 
+    # Past runs (persisted in SQLite by the orchestrator).
+    try:
+        history = list_runs()
+    except Exception:
+        history = []
+    if history:
+        st.sidebar.markdown("---")
+        labels = ["—"] + [f"{h['question'][:40]} ({h['run_id'][:6]})" for h in history]
+        chosen = st.sidebar.selectbox("Past runs", labels)
+        if chosen != "—":
+            picked = history[labels.index(chosen) - 1]
+            loaded = load_run(picked["run_id"])
+            if loaded is not None:
+                st.session_state.result = loaded
+
     if "result" not in st.session_state:
         st.session_state.result = None
 
@@ -220,10 +253,24 @@ def main():
         return
 
     render_activity(res)
+    render_research(res)
     render_stakeholders(res)
     render_recommendation(res)
     render_forecast(res)
     render_simulator(res)
+
+    # Export the brief (lazy import so docx/pandoc deps don't block app startup).
+    try:
+        from utils import export_policy_brief
+
+        st.download_button(
+            "⬇️ Download policy brief (DOCX)",
+            export_policy_brief(res),
+            file_name=f"policy_brief_{res.run_id}.docx",
+            mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        )
+    except Exception as exc:  # pragma: no cover - export is non-critical
+        st.caption(f"Brief export unavailable: {exc}")
 
 
 if __name__ == "__main__":

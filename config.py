@@ -29,9 +29,19 @@ EVIDENCE_COLLECTION = "policy_evidence"
 LOCAL_MODEL = os.getenv("POLICY_LOCAL_MODEL", "qwen3:8b")
 FRONTIER_MODEL = os.getenv("POLICY_FRONTIER_MODEL", "")  # empty => disabled
 ENABLE_FRONTIER_FALLBACK = os.getenv("POLICY_ENABLE_FALLBACK", "0") == "1"
-# When true (default for the skeleton), agents return fixture-backed mocks and
-# never call Ollama. Flip to "0" once real agents land and a model is available.
-MOCK_MODE = os.getenv("POLICY_MOCK_MODE", "1") == "1"
+
+
+def _flag(name: str, default: bool) -> bool:
+    return os.getenv(name, "1" if default else "0") == "1"
+
+
+# Global default. When true (the safe default), agents return fixture-backed mocks
+# and never call Ollama. Each component below can be flipped independently so the
+# three workstreams can turn their own piece "real" without forcing the others.
+MOCK_MODE = _flag("POLICY_MOCK_MODE", True)
+MOCK_DIRECTOR = _flag("POLICY_MOCK_DIRECTOR", MOCK_MODE)   # Person A
+MOCK_RESEARCH = _flag("POLICY_MOCK_RESEARCH", MOCK_MODE)   # Person B
+MOCK_ANALYSIS = _flag("POLICY_MOCK_ANALYSIS", MOCK_MODE)   # Person C (impl + red-team)
 
 MAX_SCHEMA_RETRIES = 2  # local re-asks before considering escalation
 

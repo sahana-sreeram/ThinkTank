@@ -1,5 +1,5 @@
 {
-  "run_id": "a58167161174",
+  "run_id": "d7dfaa908c3c",
   "request": {
     "question": "Should Boston implement congestion pricing downtown?",
     "geography": "Boston, MA",
@@ -63,7 +63,8 @@
         "competitiveness"
       ],
       "skills": [
-        "policy-research"
+        "policy-research",
+        "policy-analysis"
       ]
     },
     {
@@ -82,8 +83,44 @@
   ],
   "tasks": [
     {
+      "task_id": "research_0",
+      "description": "Gather objective evidence on: benefits and effectiveness of addressing Should Boston implement congestion pricing downtown",
+      "agent_type": "research",
+      "skills": [
+        "policy-research"
+      ],
+      "stakeholder_key": "",
+      "queries": [
+        "benefits and effectiveness of addressing Should Boston implement congestion pricing downtown Boston, MA",
+        "benefits and effectiveness of addressing Should Boston implement congestion pricing downtown"
+      ],
+      "required_outputs": [
+        "cited findings"
+      ]
+    },
+    {
+      "task_id": "research_1",
+      "description": "Gather objective evidence on: risks, costs, and comparable cases from other jurisdictions",
+      "agent_type": "research",
+      "skills": [
+        "policy-research"
+      ],
+      "stakeholder_key": "",
+      "queries": [
+        "risks, costs, and comparable cases from other jurisdictions Boston, MA",
+        "risks, costs, and comparable cases from other jurisdictions"
+      ],
+      "required_outputs": [
+        "cited findings"
+      ]
+    },
+    {
       "task_id": "task_government_regulatory",
-      "description": "Research Should Boston implement congestion pricing downtown? from the Government & Regulatory perspective.",
+      "description": "Analyze Should Boston implement congestion pricing downtown? from the Government & Regulatory perspective.",
+      "agent_type": "stakeholder",
+      "skills": [
+        "policy-research"
+      ],
       "stakeholder_key": "government_regulatory",
       "queries": [
         "Should Boston implement congestion pricing downtown? legal authority Boston, MA",
@@ -98,7 +135,11 @@
     },
     {
       "task_id": "task_community_equity",
-      "description": "Research Should Boston implement congestion pricing downtown? from the Community & Equity perspective.",
+      "description": "Analyze Should Boston implement congestion pricing downtown? from the Community & Equity perspective.",
+      "agent_type": "stakeholder",
+      "skills": [
+        "policy-research"
+      ],
       "stakeholder_key": "community_equity",
       "queries": [
         "Should Boston implement congestion pricing downtown? equity Boston, MA",
@@ -113,7 +154,12 @@
     },
     {
       "task_id": "task_economic_fiscal",
-      "description": "Research Should Boston implement congestion pricing downtown? from the Economic & Fiscal perspective.",
+      "description": "Analyze Should Boston implement congestion pricing downtown? from the Economic & Fiscal perspective.",
+      "agent_type": "stakeholder",
+      "skills": [
+        "policy-research",
+        "policy-analysis"
+      ],
       "stakeholder_key": "economic_fiscal",
       "queries": [
         "Should Boston implement congestion pricing downtown? economic impact Boston, MA",
@@ -128,7 +174,11 @@
     },
     {
       "task_id": "task_subject_matter_expert",
-      "description": "Research Should Boston implement congestion pricing downtown? from the Subject-Matter & Implementation Expert perspective.",
+      "description": "Analyze Should Boston implement congestion pricing downtown? from the Subject-Matter & Implementation Expert perspective.",
+      "agent_type": "stakeholder",
+      "skills": [
+        "policy-research"
+      ],
       "stakeholder_key": "subject_matter_expert",
       "queries": [
         "Should Boston implement congestion pricing downtown? evidence base Boston, MA",
@@ -139,6 +189,60 @@
         "cited findings",
         "likely position",
         "concerns"
+      ]
+    }
+  ],
+  "research_briefs": [
+    {
+      "topic": "Gather objective evidence on: benefits and effectiveness of addressing Should Boston implement congestion pricing downtown",
+      "findings": [
+        {
+          "claim": "Evidence on 'Gather objective evidence on: benefits and effectiveness of addressing Should Boston implement congestion pricing downtown' shows mixed but informative results.",
+          "evidence_ids": [
+            "PLACEHOLDER-GOV",
+            "PLACEHOLDER-ACADEMIC"
+          ],
+          "confidence": 0.6,
+          "assumptions": [],
+          "limitations": [
+            "Placeholder evidence in mock mode."
+          ]
+        }
+      ],
+      "evidence_ids": [
+        "PLACEHOLDER-GOV",
+        "PLACEHOLDER-ACADEMIC",
+        "PLACEHOLDER-CASE"
+      ],
+      "summary": "3 sources gathered on this topic.",
+      "skills_used": [
+        "policy-research"
+      ]
+    },
+    {
+      "topic": "Gather objective evidence on: risks, costs, and comparable cases from other jurisdictions",
+      "findings": [
+        {
+          "claim": "Evidence on 'Gather objective evidence on: risks, costs, and comparable cases from other jurisdictions' shows mixed but informative results.",
+          "evidence_ids": [
+            "PLACEHOLDER-GOV",
+            "PLACEHOLDER-ACADEMIC"
+          ],
+          "confidence": 0.6,
+          "assumptions": [],
+          "limitations": [
+            "Placeholder evidence in mock mode."
+          ]
+        }
+      ],
+      "evidence_ids": [
+        "PLACEHOLDER-GOV",
+        "PLACEHOLDER-ACADEMIC",
+        "PLACEHOLDER-CASE"
+      ],
+      "summary": "3 sources gathered on this topic.",
+      "skills_used": [
+        "policy-research"
       ]
     }
   ],
@@ -275,7 +379,7 @@
       "Mitigations are required to protect vulnerable groups."
     ],
     "disagreements": [
-      "Stakeholders differ on the acceptable level of commuter cost."
+      "Stakeholders differ on the acceptable level of cost."
     ],
     "key_findings": [
       {
@@ -454,7 +558,7 @@
   "critiques": [
     {
       "issues": [
-        "Key projections rest on assumptions that are not yet validated for Boston, MA.",
+        "Key projections rest on assumptions not yet validated for Boston, MA.",
         "Second-order and displacement effects are acknowledged but not quantified."
       ],
       "unsupported_claims": [
@@ -615,6 +719,14 @@
       "error": null
     },
     {
+      "agent": "research",
+      "model": "mock",
+      "latency_ms": 1,
+      "schema_valid": true,
+      "escalated": false,
+      "error": null
+    },
+    {
       "agent": "stakeholder_research",
       "model": "mock",
       "latency_ms": 1,
@@ -656,7 +768,8 @@
     }
   ],
   "events": [
-    "Policy Director created research plan with 4 tasks.",
+    "Policy Director created research plan with 6 tasks.",
+    "2 research agent(s) gathered evidence (2 tasks).",
     "4 stakeholder agents completed research.",
     "Research synthesized across stakeholders.",
     "Implementation plan and recommendation drafted.",

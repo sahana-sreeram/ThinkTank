@@ -80,3 +80,22 @@ def test_dispatcher_qualitative_for_unmatched_domain():
     # No fabricated numbers: qualitative outlook carries no scenario figures.
     assert not fc.sensitivity
     assert fc.assumptions and fc.limitations
+
+
+# --- second domain: housing ------------------------------------------------
+HOUSING_REQ = PolicyRequest(
+    question="Should the city relax zoning to allow more multi-family housing?",
+    geography="Metro",
+    objective="increase housing affordability",
+)
+
+
+def test_housing_domain_detected_and_numeric():
+    fc = run_forecast(REC, HOUSING_REQ)
+    assert fc.mode == "numeric" and fc.domain == "housing"
+    # baseline = status quo => no new units
+    assert fc.baseline.inputs["new_units"] == 0
+    # optimistic builds more than conservative
+    assert fc.optimistic.inputs["new_units"] > fc.conservative.inputs["new_units"]
+    # more supply => rent goes down (negative change) in the expected case
+    assert fc.expected.inputs["rent_change_pct"] < 0

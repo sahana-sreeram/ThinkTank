@@ -18,7 +18,12 @@ def test_end_to_end_produces_complete_result():
     assert isinstance(res, PolicyRunResult)
     assert res.objective is not None
     assert len(res.stakeholders) >= 3  # multiple perspectives
-    assert len(res.research) == len(res.tasks)
+    # stakeholder results match the stakeholder-typed tasks; research briefs come
+    # from the research-typed tasks the Director also created.
+    stakeholder_tasks = [t for t in res.tasks if t.agent_type == "stakeholder"]
+    assert len(res.research) == len(stakeholder_tasks)
+    assert len(res.research_briefs) >= 1
+    assert all(t.skills for t in res.tasks)  # Director assigned skills to every task
     assert res.recommendation is not None
     assert res.synthesis is not None
     assert res.forecast is not None

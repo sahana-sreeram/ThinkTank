@@ -12,7 +12,7 @@
   "cases": [
     {
       "id": "boston_congestion_pricing",
-      "latency_ms": 268,
+      "latency_ms": 254,
       "assertions": {
         "findings_have_evidence_ids": true,
         "recommendation_has_2plus_sources": true,
@@ -30,7 +30,7 @@
     },
     {
       "id": "austin_housing_zoning",
-      "latency_ms": 5,
+      "latency_ms": 7,
       "assertions": {
         "findings_have_evidence_ids": true,
         "recommendation_has_2plus_sources": true,
@@ -48,7 +48,7 @@
     },
     {
       "id": "ohio_universal_prek",
-      "latency_ms": 4,
+      "latency_ms": 7,
       "assertions": {
         "findings_have_evidence_ids": true,
         "recommendation_has_2plus_sources": true,

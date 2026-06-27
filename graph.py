@@ -29,6 +29,7 @@ from orchestrator import (
     node_plan_policy,
     node_recommend,
     node_red_team,
+    node_research,
     node_revise,
     node_stakeholder_research,
     node_synthesize,
@@ -43,6 +44,7 @@ def build_graph():
     builder = StateGraph(dict)
 
     builder.add_node("plan_policy", node_plan_policy)
+    builder.add_node("research", node_research)
     builder.add_node("stakeholder_research", node_stakeholder_research)
     builder.add_node("synthesize_research", node_synthesize)
     builder.add_node("implementation_and_recommendation", node_recommend)
@@ -52,7 +54,8 @@ def build_graph():
     builder.add_node("finalize_result", node_finalize)
 
     builder.add_edge(START, "plan_policy")
-    builder.add_edge("plan_policy", "stakeholder_research")
+    builder.add_edge("plan_policy", "research")
+    builder.add_edge("research", "stakeholder_research")
     builder.add_edge("stakeholder_research", "synthesize_research")
     builder.add_edge("synthesize_research", "implementation_and_recommendation")
     builder.add_edge("implementation_and_recommendation", "red_team_review")
@@ -71,6 +74,7 @@ def build_graph():
 def _run_fallback(state: PolicyState) -> PolicyState:
     """Sequential executor mirroring the graph topology (no langgraph required)."""
     node_plan_policy(state)
+    node_research(state)
     node_stakeholder_research(state)
     node_synthesize(state)
     node_recommend(state)

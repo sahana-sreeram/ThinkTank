@@ -1,8 +1,12 @@
 # Policy Think Tank — Local-First Multi-Agent Policy Analysis
 
+## ADLC - Agentic Development Life Cycle
+https://docs.google.com/document/d/1K5HVmgUHhYq4l5B0hAwOyk5NeSeaEf00fSwaBYEQElc/edit?usp=sharing
+
+
 > **This repository is being refactored** from TAU Group's scientific **ThinkTank**
 > into a **local-first multi-agent policy think tank**. You enter a broad policy
-> question (e.g. *"Should Boston implement congestion pricing downtown?"*) and the
+> question (e.g. *"What is the environmental impact of adding a new MBTA Line?"*) and the
 > system delegates research to stakeholder agents, synthesizes a recommendation,
 > and forecasts effects with deterministic Python.
 >
@@ -19,30 +23,42 @@
 
 ---
 
-# (Original) ThinkTank – A Framework for Generalizing Domain-Specific AI Agent Systems into Universal Collaborative Intelligence Platforms
+# Policy Think Tank
 
-The ThinkTank framework draws inspiration from the collaborative AI methodologies demonstrated in [*The Virtual Lab: AI Agents Design New SARS-CoV-2 Nanobodies with Experimental Validation*](https://www.biorxiv.org/content/10.1101/2024.11.11.623004v1), which showcased the effectiveness of multi-agent systems in scientific research and hypothesis generation.
+A **local-first, multi-agent policy analysis system**. You ask a broad policy
+question — *"Should Boston implement congestion pricing downtown?"*, *"Should the
+state pilot a guaranteed basic income?"* — and a team of AI agents plans the
+analysis, researches it, weighs stakeholder perspectives, writes a recommendation
+with an implementation plan, and forecasts possible effects. It runs entirely on a
+local model via [Ollama](https://ollama.com), and works for **any policy domain**.
 
-The implementation of ThinkTank simulates a scientific team made up of local LLM-based agents enhanced with documents provided by the user, running fully offline via [Ollama](https://ollama.com) and any LLM models supported by [Agno](https://www.agno.com/).
-
-Please find the paper here: https://arxiv.org/abs/2506.02931
+> **Adapted from [TAU Group's ThinkTank](https://github.com/taugroup/ThinkTank)**
+> (Texas A&M University), MIT-licensed. The original was a scientific-meeting
+> simulator; this fork refactors its agent + RAG foundation into a policy think tank.
 
 ---
 
 ## 💡 What It Does
 
-ThinkTank orchestrates collaborative research meetings between the following agents:
-
-- **Coordinator**  
-  Synthesizes all ideas, resolves debates, and produces final meeting summaries and project decisions.
-
-- **Critical Thinker**  
-  Points out flaws, inconsistencies, or gaps in reasoning, and demands scientific rigor.
-
-- **Domain Expert Agents**  
-Users can create any number of Domain Expert agents, each equipped with their own specialized collection in the vector store that serves as a RAG-based tool. Each expert agent is configured with distinct roles, areas of expertise, and unique contribution styles tailored to specific domains or organizational needs.
-
-All meeting discussions and summaries are **stored in a local memory database** for future reference and summarization.
+```
+User policy question
+        ↓
+Policy Director        → defines the objective, picks the stakeholders,
+                         and assigns each task its agent type + skills
+        ↓
+Research agents        → gather objective, cited evidence
+        ↓
+Stakeholder agents     → analyze from each assigned perspective (skill-grounded)
+        ↓
+Data Analyst           → synthesizes findings → recommendation + implementation plan
+        ↓
+Forecasting            → deterministic scenarios (Python — never the model)
+        ↓
+Final recommendation + evidence + plan + forecast
+```
+Orchestration is a LangGraph state graph; each step passes structured data
+(Pydantic models) to the next, and the Research agents' findings feed both the
+stakeholders and the Data Analyst
 
 ---
 

@@ -46,6 +46,7 @@ class EvidenceItem(BaseModel):
     geography: Optional[str] = None
     page: Optional[int] = None
     text: str
+    url: Optional[str] = None  # link to the source (paper landing page, dataset, …)
     relevance_score: float = 0.0
     credibility_score: float = 0.0
 

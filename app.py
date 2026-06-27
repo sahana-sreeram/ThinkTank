@@ -44,6 +44,31 @@ def _load_example() -> PolicyRunResult:
         return PolicyRunResult.model_validate(json.load(f))
 
 
+def _sources_md(evidence_ids, label: str = "Sources") -> str:
+    """Render citation ids as a readable list of linked source titles.
+
+    Resolves each id to its full EvidenceItem (title, org, link) via the retrieval
+    registry; falls back to the raw id for anything not seen this session.
+    """
+    from retrieval import get_evidence
+
+    if not evidence_ids:
+        return "_no citation_"
+    lines = []
+    for sid in dict.fromkeys(evidence_ids):  # preserve order, drop dupes
+        item = get_evidence(sid)
+        if item is None:
+            lines.append(f"- `{sid}`")
+            continue
+        title = item.title if len(item.title) <= 90 else item.title[:88] + "…"
+        meta = item.organization or item.source_type.replace("_", " ")
+        if item.publication_date:
+            meta += f", {item.publication_date}"
+        link = f"[{title}]({item.url})" if item.url else title
+        lines.append(f"- {link} — _{meta}_")
+    return f"**{label}:**\n" + "\n".join(lines)
+
+
 # --- Rendering -------------------------------------------------------------
 def render_activity(res: PolicyRunResult):
     st.subheader("🛠️ Agent Activity")
@@ -62,7 +87,8 @@ def render_research(res: PolicyRunResult):
         with st.expander(f"{b.topic}  ·  skills: {', '.join(b.skills_used) or '—'}"):
             st.caption(b.summary)
             for f in b.findings:
-                st.markdown(f"- {f.claim}  _[{', '.join(f.evidence_ids) or 'no citation'}]_")
+                st.markdown(f"- {f.claim}")
+            st.markdown(_sources_md(b.evidence_ids))
 
 
 def render_stakeholders(res: PolicyRunResult):
@@ -77,10 +103,8 @@ def render_stakeholders(res: PolicyRunResult):
                 st.caption("Skills assigned by orchestrator: " + ", ".join(skills))
             for f in r.findings:
                 st.markdown(f"**Finding:** {f.claim}")
-                st.caption(
-                    f"Evidence: {', '.join(f.evidence_ids) or 'none'} · "
-                    f"confidence {f.confidence:.0%}"
-                )
+                st.caption(f"Confidence {f.confidence:.0%}")
+                st.markdown(_sources_md(f.evidence_ids))
                 if f.assumptions:
                     st.caption("Assumptions: " + "; ".join(f.assumptions))
             if r.concerns:
@@ -116,7 +140,7 @@ def render_recommendation(res: PolicyRunResult):
         for step in rec.implementation_plan.steps:
             st.markdown(f"- *{step.phase}* ({step.timeline or 'TBD'}): " + "; ".join(step.actions))
     if rec.evidence_ids:
-        st.caption("Supporting evidence: " + ", ".join(sorted(set(rec.evidence_ids))))
+        st.markdown(_sources_md(rec.evidence_ids, label="Supporting evidence"))
 
 
 def _scenario_table(fc) -> dict:

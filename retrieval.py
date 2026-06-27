@@ -133,6 +133,76 @@ def _mock_evidence(queries: List[str], geography: Optional[str]):
     ]
 
 
+# Reused across calls so the embedder + Chroma collection are initialized once.
+_CACHE = None
+
+# Process-local ledger of every evidence item returned this session, keyed by
+# source_id. Lets the UI / downstream code resolve a citation id back to its full
+# source (title, url, …) without re-querying — and without needing the embedder.
+_EVIDENCE_REGISTRY: dict = {}
+
+
+def get_evidence(source_id: str):
+    """Return the full EvidenceItem for a citation id, or None if unknown."""
+    return _EVIDENCE_REGISTRY.get(source_id)
+
+
+def resolve_citations(source_ids):
+    """Map citation ids to full EvidenceItems (skips ids not seen this session)."""
+    return [_EVIDENCE_REGISTRY[i] for i in source_ids if i in _EVIDENCE_REGISTRY]
+
+
+def _get_cache():
+    global _CACHE
+    if _CACHE is None:
+        from evidence_cache import EvidenceCache
+
+        _CACHE = EvidenceCache()
+    return _CACHE
+
+
+def _rank_and_dedup(items, top_k: int):
+    """Deduplicate by source_id (keep best) and rank by relevance * credibility."""
+    best = {}
+    for e in items:
+        score = e.relevance_score * e.credibility_score
+        cur = best.get(e.source_id)
+        if cur is None or score > cur.relevance_score * cur.credibility_score:
+            best[e.source_id] = e
+    ranked = sorted(
+        best.values(),
+        key=lambda e: e.relevance_score * e.credibility_score,
+        reverse=True,
+    )
+    return ranked[:top_k]
+
+
+def _hybrid_evidence(queries, geography, source_types, top_k):
+    """Cache-first, then live-fetch-and-cache (the hybrid retrieval strategy)."""
+    from config import LIVE_FETCH, EVIDENCE_FETCH_BUDGET
+
+    items = []
+    cache = _get_cache()
+    try:
+        items = cache.query(queries, geography, source_types, k=top_k * 3)
+    except Exception as exc:  # noqa: BLE001 - cache must never break a run
+        logger.warning("evidence cache query failed: %s", exc)
+
+    if LIVE_FETCH and len(items) < top_k:
+        import sources
+
+        fresh = sources.fetch_evidence(
+            queries, geography, source_types, max_items=EVIDENCE_FETCH_BUDGET
+        )
+        if fresh:
+            try:
+                cache.add(fresh)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("evidence cache write failed: %s", exc)
+            items = items + fresh
+    return items
+
+
 def retrieve_policy_evidence(
     queries: List[str],
     geography: Optional[str] = None,
@@ -141,43 +211,30 @@ def retrieve_policy_evidence(
 ):
     """Retrieve ranked, deduplicated, citable policy evidence.
 
-    Foundation behavior: in MOCK_MODE returns fixture EvidenceItems so the rest of
-    the team is unblocked. The real path (shared `transportation` Chroma collection
-    with metadata filtering, dedup, max-chunks-per-source, credibility ranking) is
-    TODO for Person 2.
+    - MOCK_RETRIEVAL (the default when MOCK_MODE): returns fixture EvidenceItems so
+      the rest of the team is unblocked.
+    - Real path: hybrid retrieval — query the local Chroma evidence cache first,
+      then live-fetch from external connectors (``sources/``) when the cache is
+      thin, caching new evidence for next time. Results are deduplicated by
+      source_id and ranked by relevance * credibility.
+
+    Note: gated on MOCK_RETRIEVAL (not MOCK_MODE) so real citations can flow into
+    mock agents — set POLICY_MOCK_RETRIEVAL=0 to turn sources real independently.
     """
-    from config import MOCK_MODE, MAX_CHUNKS_PER_SOURCE
+    from config import MOCK_RETRIEVAL
 
-    if MOCK_MODE:
+    if MOCK_RETRIEVAL:
         items = _mock_evidence(queries, geography)
+        if source_types:
+            items = [e for e in items if e.source_type in source_types]
     else:
-        # TODO(P2): real retrieval against the shared policy_evidence collection:
-        #   - embed queries, query collection with metadata `where` filters
-        #     (geography, source_type), dedup by source_id, cap per source,
-        #     rank by relevance * credibility, attach page numbers.
-        # Until that lands, degrade gracefully to placeholder evidence so the real
-        # agents can run end-to-end without the RAG work being finished. The agents
-        # therefore reason for real over placeholder sources until P2 implements this.
-        logger.warning(
-            "Real policy retrieval not implemented yet (P2); using placeholder evidence."
-        )
-        items = _mock_evidence(queries, geography)
+        items = _hybrid_evidence(queries, geography, source_types, top_k)
 
-    if source_types:
-        items = [e for e in items if e.source_type in source_types]
-
-    # Deduplicate + cap chunks per source, then rank by relevance * credibility.
-    per_source: dict[str, int] = defaultdict(int)
-    ranked = sorted(
-        items, key=lambda e: e.relevance_score * e.credibility_score, reverse=True
+    out = _rank_and_dedup(items, top_k)
+    # Record so citations (evidence_ids) can be resolved to titles/links later.
+    for e in out:
+        _EVIDENCE_REGISTRY[e.source_id] = e
+    logger.info(
+        "retrieve_policy_evidence returned %d items (mock=%s)", len(out), MOCK_RETRIEVAL
     )
-    out = []
-    for e in ranked:
-        if per_source[e.source_id] >= MAX_CHUNKS_PER_SOURCE:
-            continue
-        per_source[e.source_id] += 1
-        out.append(e)
-        if len(out) >= top_k:
-            break
-    logger.info("retrieve_policy_evidence returned %d items (mock=%s)", len(out), True)
     return out

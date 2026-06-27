@@ -26,7 +26,7 @@ EVIDENCE_COLLECTION = "policy_evidence"
 
 # --- Model strategy (P1) ---------------------------------------------------
 # Local-only by default. Frontier fallback is OFF unless explicitly enabled.
-LOCAL_MODEL = os.getenv("POLICY_LOCAL_MODEL", "qwen3:8b")
+LOCAL_MODEL = os.getenv("POLICY_LOCAL_MODEL", "qwen3:8b")  # local via Ollama
 FRONTIER_MODEL = os.getenv("POLICY_FRONTIER_MODEL", "")  # empty => disabled
 ENABLE_FRONTIER_FALLBACK = os.getenv("POLICY_ENABLE_FALLBACK", "0") == "1"
 
@@ -44,10 +44,6 @@ MOCK_RESEARCH = _flag("POLICY_MOCK_RESEARCH", MOCK_MODE)   # Person B
 MOCK_ANALYSIS = _flag("POLICY_MOCK_ANALYSIS", MOCK_MODE)   # Person C (impl + red-team)
 
 MAX_SCHEMA_RETRIES = 2  # local re-asks before considering escalation
-
-# --- Orchestration (P1) ----------------------------------------------------
-MAX_REVISION_LOOPS = 1  # red-team -> revise -> red-team, at most this many
-REVISE_ON_SEVERITY = "high"  # severity that forces a revision loop
 
 # --- Retrieval (P2) --------------------------------------------------------
 DEFAULT_TOP_K = 6

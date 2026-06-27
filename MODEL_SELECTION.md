@@ -6,11 +6,11 @@ default, with an optional, narrowly-scoped frontier fallback.
 ## Local models (default)
 | Use | Model (default) |
 |---|---|
-| Stakeholder analysis, synthesis, critique, structured JSON | `qwen3:8b` (`config.LOCAL_MODEL`) |
+| Research, stakeholder analysis, synthesis, structured JSON | `qwen3:8b` (`config.LOCAL_MODEL`) |
 | Embeddings (RAG) | `nomic-embed-text` (`config.EMBEDDING_MODEL`) |
 
 Used for: document extraction, query generation, classification, evidence
-summarization, stakeholder analysis, structured JSON generation, initial critique.
+summarization, stakeholder analysis, structured JSON generation.
 
 ## Deterministic Python (never the LLM)
 Forecast calculations, source credibility scoring, schema validation, metrics, and

@@ -19,9 +19,9 @@ How we build, evaluate, and harden the Policy Think Tank agents.
 ## 4. Evaluate
 - `evals/run_evals.py` runs cases in `evals/cases.json` and checks assertions:
   findings have evidence IDs; recommendation cites ≥2 sources; ≥3 stakeholder
-  perspectives; equity discussed; ≥3 implementation steps; red team finds ≥2
-  weaknesses; recommendation changes on severe critique; conservative/expected/
-  optimistic forecasts present with visible assumptions; structured outputs validate.
+  perspectives; research briefs present; equity discussed; ≥3 implementation steps;
+  forecast present in the correct mode (numeric or qualitative) with visible
+  assumptions; structured outputs validate.
 - Records: assertion pass rate, latency, schema failures, local-model call count,
   escalation count, errors → `evals/baseline_results.json` / `skilled_results.json`.
 - Comparisons to run: **without skills vs with skills**, **local-only vs local +

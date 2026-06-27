@@ -20,10 +20,19 @@ from models import (
     Finding,
     PolicyRequest,
     PolicyTask,
+    ResearchBrief,
     StakeholderProfile,
     StakeholderResearchResult,
 )
 from retrieval import retrieve_policy_evidence
+
+
+def _research_context(briefs: list[ResearchBrief] | None):
+    """Flatten shared research briefs into (findings, evidence_ids) for handoff."""
+    briefs = briefs or []
+    findings = [f for b in briefs for f in b.findings]
+    evidence_ids = sorted({eid for b in briefs for eid in b.evidence_ids})
+    return findings, evidence_ids
 
 
 # --- LLM output schema (internal) -----------------------------------------
@@ -37,17 +46,22 @@ class _ResearchOut(BaseModel):
 
 
 def _mock_result(
-    request: PolicyRequest, task: PolicyTask, profile: StakeholderProfile
+    request: PolicyRequest,
+    task: PolicyTask,
+    profile: StakeholderProfile,
+    research_briefs: list[ResearchBrief] | None = None,
 ) -> StakeholderResearchResult:
     evidence = retrieve_policy_evidence(
         task.queries, geography=request.geography, top_k=DEFAULT_TOP_K
     )
-    evidence_ids = [e.source_id for e in evidence]
+    _, research_evidence_ids = _research_context(research_briefs)
+    # Build on the shared research: cite its evidence alongside the stakeholder's own.
+    evidence_ids = list(dict.fromkeys([e.source_id for e in evidence] + research_evidence_ids))
     findings = [
         Finding(
             claim=f"From the {profile.name} view, {request.question.rstrip('?')} "
             f"primarily affects {profile.priorities[0]}.",
-            evidence_ids=evidence_ids[:2],
+            evidence_ids=evidence_ids[:3],
             confidence=0.7,
             assumptions=[f"Local conditions resemble those in source {evidence_ids[0]}."]
             if evidence_ids
@@ -69,15 +83,20 @@ def _mock_result(
 
 
 def _real_result(
-    request: PolicyRequest, task: PolicyTask, profile: StakeholderProfile
+    request: PolicyRequest,
+    task: PolicyTask,
+    profile: StakeholderProfile,
+    research_briefs: list[ResearchBrief] | None = None,
 ) -> StakeholderResearchResult:
     evidence = retrieve_policy_evidence(
         task.queries, geography=request.geography, top_k=DEFAULT_TOP_K
     )
+    research_findings, _ = _research_context(research_briefs)
     packet = build_packet(
         request,
         task=task,
         perspective=profile.perspective,
+        prior_findings=research_findings,  # shared research feeds the stakeholder
         evidence=evidence,
         skill_keys=task.skills or profile.skills,  # orchestrator-assigned skills
         output_schema_name="_ResearchOut",
@@ -109,8 +128,13 @@ def run_stakeholder_research(
     request: PolicyRequest,
     tasks: list[PolicyTask],
     stakeholders: list[StakeholderProfile],
+    research_briefs: list[ResearchBrief] | None = None,
 ) -> list[StakeholderResearchResult]:
-    """Run each stakeholder's research task and return cited results."""
+    """Run each stakeholder's research task and return cited results.
+
+    `research_briefs` (from the Research agent) are folded into every stakeholder's
+    briefing so each perspective builds on the shared evidence base.
+    """
     by_key = {s.key: s for s in stakeholders}
     build = _mock_result if MOCK_RESEARCH else _real_result
     results = []
@@ -120,5 +144,5 @@ def run_stakeholder_research(
         profile = by_key.get(task.stakeholder_key)
         if profile is None:
             continue
-        results.append(build(request, task, profile))
+        results.append(build(request, task, profile, research_briefs))
     return results

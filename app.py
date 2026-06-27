@@ -51,7 +51,7 @@ def render_activity(res: PolicyRunResult):
         st.markdown(f"- {ev}")
     local = sum(1 for m in res.model_events if not m.escalated)
     esc = sum(1 for m in res.model_events if m.escalated)
-    st.caption(f"Model calls — local: {local} · escalated: {esc} · revisions: {res.revisions}")
+    st.caption(f"Model calls — local: {local} · escalated: {esc}")
 
 
 def render_research(res: PolicyRunResult):
@@ -117,12 +117,6 @@ def render_recommendation(res: PolicyRunResult):
             st.markdown(f"- *{step.phase}* ({step.timeline or 'TBD'}): " + "; ".join(step.actions))
     if rec.evidence_ids:
         st.caption("Supporting evidence: " + ", ".join(sorted(set(rec.evidence_ids))))
-    if res.critiques:
-        with st.expander("🔴 Red Team review"):
-            c = res.critiques[-1]
-            st.markdown(f"Severity: **{c.severity}**")
-            for i in c.issues:
-                st.markdown(f"- {i}")
 
 
 def _scenario_table(fc) -> dict:

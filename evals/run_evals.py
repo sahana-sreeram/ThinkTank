@@ -31,7 +31,6 @@ CASES_PATH = os.path.join(os.path.dirname(__file__), "cases.json")
 def assertions(res: PolicyRunResult) -> list[tuple[str, bool]]:
     """Each (name, passed). Mirrors the hackathon eval requirements."""
     rec = res.recommendation
-    crit = res.critiques[-1] if res.critiques else None
     fc = res.forecast
     material_findings = [f for r in res.research for f in r.findings]
     impl_steps = rec.implementation_plan.steps if rec and rec.implementation_plan else []
@@ -43,12 +42,11 @@ def assertions(res: PolicyRunResult) -> list[tuple[str, bool]]:
         ("findings_have_evidence_ids", all(f.evidence_ids for f in material_findings)),
         ("recommendation_has_2plus_sources", bool(rec) and len(set(rec.evidence_ids)) >= 2),
         ("multiple_stakeholder_perspectives", len(res.research) >= 3),
+        ("research_briefs_present", len(res.research_briefs) >= 1),
         ("equity_discussed", bool(rec) and len(rec.equity_effects) >= 1),
         ("implementation_has_3plus_steps", len(impl_steps) >= 3),
-        ("red_team_two_plus_weaknesses", bool(crit) and (len(crit.issues) + len(crit.unintended_consequences)) >= 2),
         ("forecast_present_in_correct_mode", numeric_ok or qualitative_ok),
         ("forecast_assumptions_visible", bool(fc) and bool(fc.assumptions) and bool(fc.limitations)),
-        ("revisions_bounded", res.revisions <= 2),
     ]
 
 

@@ -46,3 +46,26 @@ def test_research_agent_produces_briefs_only_for_research_tasks():
     briefs = run_research(REQ, tasks)
     assert len(briefs) == sum(1 for t in tasks if t.agent_type == "research")
     assert all(b.findings for b in briefs)
+
+
+def test_research_findings_flow_into_stakeholders_and_recommendation():
+    """The Research agent's evidence must reach the next two agents."""
+    from agents import (
+        create_policy_recommendation,
+        run_research,
+        run_stakeholder_research,
+    )
+
+    obj, stk, tasks = plan_policy(REQ)
+    briefs = run_research(REQ, tasks)
+    brief_ev = {eid for b in briefs for eid in b.evidence_ids}
+    assert brief_ev  # research produced citable evidence
+
+    # Stakeholders built WITH the briefs cite the shared research evidence...
+    with_briefs = run_stakeholder_research(REQ, tasks, stk, research_briefs=briefs)
+    cited = {eid for r in with_briefs for f in r.findings for eid in f.evidence_ids}
+    assert brief_ev & cited, "stakeholder findings should cite research evidence"
+
+    # ...and the recommendation's evidence set includes the research evidence.
+    rec = create_policy_recommendation(REQ, with_briefs, research_briefs=briefs)
+    assert brief_ev & set(rec.evidence_ids), "recommendation should include research evidence"

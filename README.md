@@ -4,7 +4,7 @@
 > into a **local-first multi-agent policy think tank**. You enter a broad policy
 > question (e.g. *"Should Boston implement congestion pricing downtown?"*) and the
 > system delegates research to stakeholder agents, synthesizes a recommendation,
-> red-teams it, and forecasts effects with deterministic Python.
+> and forecasts effects with deterministic Python.
 >
 > - **Run the app:** `streamlit run app.py` (runs in mock mode with no model needed).
 > - **Run tests:** `python -m pytest tests/`

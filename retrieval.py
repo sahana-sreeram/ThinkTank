@@ -151,11 +151,17 @@ def retrieve_policy_evidence(
     if MOCK_MODE:
         items = _mock_evidence(queries, geography)
     else:
-        # TODO(P2): real retrieval against the shared transportation collection:
+        # TODO(P2): real retrieval against the shared policy_evidence collection:
         #   - embed queries, query collection with metadata `where` filters
         #     (geography, source_type), dedup by source_id, cap per source,
         #     rank by relevance * credibility, attach page numbers.
-        raise NotImplementedError("Real policy retrieval not implemented yet (P2).")
+        # Until that lands, degrade gracefully to placeholder evidence so the real
+        # agents can run end-to-end without the RAG work being finished. The agents
+        # therefore reason for real over placeholder sources until P2 implements this.
+        logger.warning(
+            "Real policy retrieval not implemented yet (P2); using placeholder evidence."
+        )
+        items = _mock_evidence(queries, geography)
 
     if source_types:
         items = [e for e in items if e.source_type in source_types]

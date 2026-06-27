@@ -5,7 +5,7 @@ domain (transportation, housing, education, health, fiscal policy, …). The use
 submits a broad policy question (e.g. *"Should Boston implement congestion pricing
 downtown?"* or *"Should we adopt a guaranteed basic income pilot?"*) and the system
 runs a Policy Director → stakeholder research → synthesis → recommendation →
-red-team → forecast pipeline, returning a recommendation, evidence, implementation
+forecast pipeline, returning a recommendation, evidence, implementation
 plan, risks, and forecast scenarios. Transportation is just the first worked example.
 
 > **Attribution.** This project is adapted from **TAU Group's ThinkTank**
@@ -17,27 +17,23 @@ plan, risks, and forecast scenarios. Transportation is just the first worked exa
 
 ```
 START → plan_policy → research → stakeholder_research → synthesize_research
-      → implementation_and_recommendation → red_team_review
-      → should_revise? ──yes─→ revise_recommendation ─→ red_team_review
-                      └──no──→ run_forecast → finalize_result → END
+      → implementation_and_recommendation → run_forecast → finalize_result → END
 ```
 
-Revision loops are bounded by `config.MAX_REVISION_LOOPS` (default 1).
 `graph.py` falls back to an equivalent sequential executor if LangGraph is absent.
 
 ## Agent roster
 A **Policy Director** that plans and **assigns each worker its agent type + skills**,
-three worker agent types, and a **Red-Team** for the revision loop:
+plus three worker agent types:
 - **Policy Director** (`agents/policy_director.py`) — defines objective, picks the
   stakeholder roster, creates research + stakeholder tasks, and **chooses each task's
-  skills** from the skill registry. Also revises the recommendation.
+  skills** from the skill registry.
 - **Research agent** (`agents/research_agent.py`) — gathers objective, cited evidence
   on sub-topics (no perspective). Output: `ResearchBrief`s.
 - **Stakeholder agent** (`agents/stakeholder_research.py`) — one shared implementation
   instantiated into multiple perspectives; cited findings via RAG.
 - **Data Analyst** (`agents/data_analyst.py`) — synthesis + recommendation + phased
   plan.
-- **Red-Team** (`agents/red_team_agent.py`) — adversarial critique driving revision.
 
 ## Orchestrator-assigned skills
 Skills are **not** hardcoded on agents. `skills_registry.py` reads `skills/*/SKILL.md`
@@ -54,7 +50,7 @@ SQLite (`storage.py`), and the vector store — never in prompts.
 
 ## Determinism boundary
 - **LLM**: extraction, query generation, classification, summarization, stakeholder
-  analysis, structured JSON, initial critique.
+  analysis, structured JSON.
 - **Python (deterministic)**: forecasts (`forecasters/`), source scoring
   (`source_scoring.py`), schema validation, metrics, sensitivity analysis.
 

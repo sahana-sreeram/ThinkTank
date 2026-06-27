@@ -17,9 +17,7 @@ from agent_builder import run_structured
 from config import MOCK_DIRECTOR
 from context_builder import build_packet
 from models import (
-    CritiqueResult,
     PolicyObjective,
-    PolicyRecommendation,
     PolicyRequest,
     PolicyTask,
     StakeholderProfile,
@@ -188,54 +186,3 @@ def plan_policy(
     ]
     tasks = _research_tasks(request, topics) + _stakeholder_tasks(request, stakeholders)
     return objective, stakeholders, tasks
-
-
-# --- Revision --------------------------------------------------------------
-class _RevisionOut(BaseModel):
-    summary: str
-    added_actions: list[str] = Field(default_factory=list)
-    added_risks: list[str] = Field(default_factory=list)
-
-
-def _mock_revise(
-    recommendation: PolicyRecommendation, critique: CritiqueResult
-) -> PolicyRecommendation:
-    revised = recommendation.model_copy(deep=True)
-    revised.summary = "[Revised after red-team review] " + recommendation.summary
-    for fix in critique.required_revisions:
-        revised.recommended_actions.append(f"Address red-team concern: {fix}")
-    for consequence in critique.unintended_consequences:
-        if consequence not in revised.risks:
-            revised.risks.append(consequence)
-    revised.confidence = max(0.0, recommendation.confidence - 0.1)
-    return revised
-
-
-def revise_recommendation(
-    request: PolicyRequest,
-    recommendation: PolicyRecommendation,
-    critique: CritiqueResult,
-) -> PolicyRecommendation:
-    """Apply the Red Team's required revisions to the recommendation."""
-    if MOCK_DIRECTOR:
-        return _mock_revise(recommendation, critique)
-
-    prompt = (
-        f"POLICY QUESTION: {request.question}\n\n"
-        f"CURRENT RECOMMENDATION SUMMARY: {recommendation.summary}\n\n"
-        f"RED-TEAM REQUIRED REVISIONS:\n- " + "\n- ".join(critique.required_revisions)
-        + "\n\nRevise the recommendation to address these. Return JSON with keys: "
-        "summary (string), added_actions (string[]), added_risks (string[])."
-    )
-    out, _ = run_structured("policy_director", prompt, _RevisionOut)
-    if out is None:
-        return _mock_revise(recommendation, critique)
-
-    revised = recommendation.model_copy(deep=True)
-    revised.summary = out.summary or recommendation.summary
-    revised.recommended_actions.extend(out.added_actions)
-    for risk in out.added_risks:
-        if risk not in revised.risks:
-            revised.risks.append(risk)
-    revised.confidence = max(0.0, recommendation.confidence - 0.1)
-    return revised

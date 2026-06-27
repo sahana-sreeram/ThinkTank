@@ -1,5 +1,5 @@
 {
-  "run_id": "d7dfaa908c3c",
+  "run_id": "cb41c1cbfb4b",
   "request": {
     "question": "Should Boston implement congestion pricing downtown?",
     "geography": "Boston, MA",
@@ -254,7 +254,8 @@
           "claim": "From the Government & Regulatory view, Should Boston implement congestion pricing downtown primarily affects legal authority.",
           "evidence_ids": [
             "PLACEHOLDER-GOV",
-            "PLACEHOLDER-ACADEMIC"
+            "PLACEHOLDER-ACADEMIC",
+            "PLACEHOLDER-CASE"
           ],
           "confidence": 0.7,
           "assumptions": [
@@ -285,7 +286,8 @@
           "claim": "From the Community & Equity view, Should Boston implement congestion pricing downtown primarily affects equity.",
           "evidence_ids": [
             "PLACEHOLDER-GOV",
-            "PLACEHOLDER-ACADEMIC"
+            "PLACEHOLDER-ACADEMIC",
+            "PLACEHOLDER-CASE"
           ],
           "confidence": 0.7,
           "assumptions": [
@@ -316,7 +318,8 @@
           "claim": "From the Economic & Fiscal view, Should Boston implement congestion pricing downtown primarily affects economic impact.",
           "evidence_ids": [
             "PLACEHOLDER-GOV",
-            "PLACEHOLDER-ACADEMIC"
+            "PLACEHOLDER-ACADEMIC",
+            "PLACEHOLDER-CASE"
           ],
           "confidence": 0.7,
           "assumptions": [
@@ -347,7 +350,8 @@
           "claim": "From the Subject-Matter & Implementation Expert view, Should Boston implement congestion pricing downtown primarily affects evidence base.",
           "evidence_ids": [
             "PLACEHOLDER-GOV",
-            "PLACEHOLDER-ACADEMIC"
+            "PLACEHOLDER-ACADEMIC",
+            "PLACEHOLDER-CASE"
           ],
           "confidence": 0.7,
           "assumptions": [
@@ -373,7 +377,7 @@
     }
   ],
   "synthesis": {
-    "summary": "Across 4 stakeholder perspectives, there is qualified support for action on 'Should Boston implement congestion pricing downtown?', contingent on equity safeguards.",
+    "summary": "Across 4 stakeholder perspectives and 2 research briefs, there is qualified support for action on 'Should Boston implement congestion pricing downtown?', contingent on equity safeguards.",
     "consensus_points": [
       "Some intervention is justified by the evidence.",
       "Mitigations are required to protect vulnerable groups."
@@ -383,10 +387,35 @@
     ],
     "key_findings": [
       {
-        "claim": "From the Government & Regulatory view, Should Boston implement congestion pricing downtown primarily affects legal authority.",
+        "claim": "Evidence on 'Gather objective evidence on: benefits and effectiveness of addressing Should Boston implement congestion pricing downtown' shows mixed but informative results.",
         "evidence_ids": [
           "PLACEHOLDER-GOV",
           "PLACEHOLDER-ACADEMIC"
+        ],
+        "confidence": 0.6,
+        "assumptions": [],
+        "limitations": [
+          "Placeholder evidence in mock mode."
+        ]
+      },
+      {
+        "claim": "Evidence on 'Gather objective evidence on: risks, costs, and comparable cases from other jurisdictions' shows mixed but informative results.",
+        "evidence_ids": [
+          "PLACEHOLDER-GOV",
+          "PLACEHOLDER-ACADEMIC"
+        ],
+        "confidence": 0.6,
+        "assumptions": [],
+        "limitations": [
+          "Placeholder evidence in mock mode."
+        ]
+      },
+      {
+        "claim": "From the Government & Regulatory view, Should Boston implement congestion pricing downtown primarily affects legal authority.",
+        "evidence_ids": [
+          "PLACEHOLDER-GOV",
+          "PLACEHOLDER-ACADEMIC",
+          "PLACEHOLDER-CASE"
         ],
         "confidence": 0.7,
         "assumptions": [
@@ -400,7 +429,8 @@
         "claim": "From the Community & Equity view, Should Boston implement congestion pricing downtown primarily affects equity.",
         "evidence_ids": [
           "PLACEHOLDER-GOV",
-          "PLACEHOLDER-ACADEMIC"
+          "PLACEHOLDER-ACADEMIC",
+          "PLACEHOLDER-CASE"
         ],
         "confidence": 0.7,
         "assumptions": [
@@ -414,21 +444,8 @@
         "claim": "From the Economic & Fiscal view, Should Boston implement congestion pricing downtown primarily affects economic impact.",
         "evidence_ids": [
           "PLACEHOLDER-GOV",
-          "PLACEHOLDER-ACADEMIC"
-        ],
-        "confidence": 0.7,
-        "assumptions": [
-          "Local conditions resemble those in source PLACEHOLDER-GOV."
-        ],
-        "limitations": [
-          "Limited city-specific data in the curated corpus."
-        ]
-      },
-      {
-        "claim": "From the Subject-Matter & Implementation Expert view, Should Boston implement congestion pricing downtown primarily affects evidence base.",
-        "evidence_ids": [
-          "PLACEHOLDER-GOV",
-          "PLACEHOLDER-ACADEMIC"
+          "PLACEHOLDER-ACADEMIC",
+          "PLACEHOLDER-CASE"
         ],
         "confidence": 0.7,
         "assumptions": [
@@ -441,6 +458,7 @@
     ],
     "evidence_ids": [
       "PLACEHOLDER-ACADEMIC",
+      "PLACEHOLDER-CASE",
       "PLACEHOLDER-GOV"
     ],
     "data_gaps": [
@@ -477,6 +495,7 @@
     ],
     "evidence_ids": [
       "PLACEHOLDER-ACADEMIC",
+      "PLACEHOLDER-CASE",
       "PLACEHOLDER-GOV"
     ],
     "confidence": 0.7,
@@ -555,30 +574,6 @@
       }
     ]
   },
-  "critiques": [
-    {
-      "issues": [
-        "Key projections rest on assumptions not yet validated for Boston, MA.",
-        "Second-order and displacement effects are acknowledged but not quantified."
-      ],
-      "unsupported_claims": [
-        "Stated confidence level lacks an accompanying sensitivity analysis."
-      ],
-      "unintended_consequences": [
-        "Effects may spill over to adjacent populations or jurisdictions.",
-        "Affected groups may adapt in ways that erode the intended benefit."
-      ],
-      "missing_perspectives": [
-        "Frontline implementers / operators",
-        "Groups most exposed to the downside risks"
-      ],
-      "required_revisions": [
-        "Define monitoring triggers for the identified second-order effects"
-      ],
-      "severity": "medium"
-    }
-  ],
-  "revisions": 0,
   "forecast": {
     "mode": "numeric",
     "domain": "transportation",
@@ -751,14 +746,6 @@
       "error": null
     },
     {
-      "agent": "red_team",
-      "model": "mock",
-      "latency_ms": 1,
-      "schema_valid": true,
-      "escalated": false,
-      "error": null
-    },
-    {
       "agent": "forecasting",
       "model": "mock",
       "latency_ms": 1,
@@ -773,7 +760,6 @@
     "4 stakeholder agents completed research.",
     "Research synthesized across stakeholders.",
     "Implementation plan and recommendation drafted.",
-    "Red Team review complete (severity=medium).",
     "Numeric forecast generated (transportation domain).",
     "Final recommendation assembled."
   ]

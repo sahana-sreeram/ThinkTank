@@ -15,20 +15,13 @@ import time
 import uuid
 from typing import Any
 
-from config import (
-    LOCAL_MODEL,
-    MAX_REVISION_LOOPS,
-    MOCK_MODE,
-    REVISE_ON_SEVERITY,
-)
+from config import LOCAL_MODEL, MOCK_MODE
 from logger import log_model_event
 from models import ModelEvent, PolicyRequest, PolicyRunResult
 
 from agents import (
     create_policy_recommendation,
     plan_policy,
-    red_team_review,
-    revise_recommendation,
     run_research,
     run_stakeholder_research,
     synthesize_research,
@@ -84,7 +77,12 @@ def node_research(state: PolicyState) -> PolicyState:
 
 def node_stakeholder_research(state: PolicyState) -> PolicyState:
     request: PolicyRequest = state["request"]
-    research = run_stakeholder_research(request, state["tasks"], state["stakeholders"])
+    research = run_stakeholder_research(
+        request,
+        state["tasks"],
+        state["stakeholders"],
+        research_briefs=state.get("research_briefs", []),
+    )
     state["research"] = research
     # Collect cited evidence so the UI can show the corpus actually used.
     from retrieval import retrieve_policy_evidence
@@ -98,7 +96,9 @@ def node_stakeholder_research(state: PolicyState) -> PolicyState:
 
 
 def node_synthesize(state: PolicyState) -> PolicyState:
-    state["synthesis"] = synthesize_research(state["request"], state["research"])
+    state["synthesis"] = synthesize_research(
+        state["request"], state["research"], research_briefs=state.get("research_briefs", [])
+    )
     _emit(state, "synthesis")
     _log(state, "Research synthesized across stakeholders.")
     return state
@@ -106,29 +106,10 @@ def node_synthesize(state: PolicyState) -> PolicyState:
 
 def node_recommend(state: PolicyState) -> PolicyState:
     state["recommendation"] = create_policy_recommendation(
-        state["request"], state["research"]
+        state["request"], state["research"], research_briefs=state.get("research_briefs", [])
     )
     _emit(state, "implementation_agent")
     _log(state, "Implementation plan and recommendation drafted.")
-    return state
-
-
-def node_red_team(state: PolicyState) -> PolicyState:
-    critique = red_team_review(state["request"], state["recommendation"])
-    state.setdefault("critiques", []).append(critique)
-    _emit(state, "red_team")
-    _log(state, f"Red Team review complete (severity={critique.severity}).")
-    return state
-
-
-def node_revise(state: PolicyState) -> PolicyState:
-    critique = state["critiques"][-1]
-    state["recommendation"] = revise_recommendation(
-        state["request"], state["recommendation"], critique
-    )
-    state["revisions"] = state.get("revisions", 0) + 1
-    _emit(state, "policy_director", escalated=False)
-    _log(state, f"Recommendation revised (revision #{state['revisions']}).")
     return state
 
 
@@ -153,20 +134,6 @@ def node_finalize(state: PolicyState) -> PolicyState:
     return state
 
 
-# --- Conditional routing ---------------------------------------------------
-
-
-def should_revise(state: PolicyState) -> str:
-    """Return 'revise' or 'forecast' after red-team review."""
-    critique = state["critiques"][-1]
-    revisions = state.get("revisions", 0)
-    severities = {"low": 0, "medium": 1, "high": 2}
-    needs = severities.get(critique.severity, 0) >= severities.get(REVISE_ON_SEVERITY, 2)
-    if needs and revisions < MAX_REVISION_LOOPS:
-        return "revise"
-    return "forecast"
-
-
 # --- Public entry point ----------------------------------------------------
 
 
@@ -181,8 +148,6 @@ def _build_result(state: PolicyState) -> PolicyRunResult:
         research=state.get("research", []),
         synthesis=state.get("synthesis"),
         recommendation=state.get("recommendation"),
-        critiques=state.get("critiques", []),
-        revisions=state.get("revisions", 0),
         forecast=state.get("forecast"),
         forecast_parameters=state.get("forecast_parameters"),
         evidence=state.get("evidence", []),
@@ -202,8 +167,6 @@ def run_policy_analysis(request: PolicyRequest) -> PolicyRunResult:
         "request": request,
         "model_events": [],
         "events": [],
-        "critiques": [],
-        "revisions": 0,
     }
 
     from graph import run_graph

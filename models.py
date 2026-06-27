@@ -29,8 +29,6 @@ SourceType = Literal[
     "other",
 ]
 
-Severity = Literal["low", "medium", "high"]
-
 # Worker agent types the Policy Director dispatches. The Director also assigns each
 # task a skill set (from skills_registry) — skills are orchestrator-decided, not
 # hardcoded on the agent.
@@ -214,22 +212,6 @@ class PolicyRecommendation(BaseModel):
 
 
 # ---------------------------------------------------------------------------
-# Red-team layer
-# ---------------------------------------------------------------------------
-
-
-class CritiqueResult(BaseModel):
-    """The Red Team's structured challenge to a recommendation."""
-
-    issues: list[str] = Field(default_factory=list)
-    unsupported_claims: list[str] = Field(default_factory=list)
-    unintended_consequences: list[str] = Field(default_factory=list)
-    missing_perspectives: list[str] = Field(default_factory=list)
-    required_revisions: list[str] = Field(default_factory=list)
-    severity: Severity = "low"
-
-
-# ---------------------------------------------------------------------------
 # Forecasting layer (deterministic — no LLM arithmetic)
 # ---------------------------------------------------------------------------
 
@@ -316,8 +298,6 @@ class PolicyRunResult(BaseModel):
     research: list[StakeholderResearchResult] = Field(default_factory=list)
     synthesis: Optional[ResearchSynthesis] = None
     recommendation: Optional[PolicyRecommendation] = None
-    critiques: list[CritiqueResult] = Field(default_factory=list)
-    revisions: int = 0
     forecast: Optional[ForecastResult] = None
     forecast_parameters: Optional[ForecastParameters] = None
     evidence: list[EvidenceItem] = Field(default_factory=list)

@@ -6,7 +6,6 @@ import os
 import pytest
 
 from models import (
-    CritiqueResult,
     EvidenceItem,
     Finding,
     ForecastResult,
@@ -51,6 +50,8 @@ def test_evidence_item_roundtrip():
     assert EvidenceItem.model_validate_json(e.model_dump_json()) == e
 
 
-def test_critique_severity_literal():
+def test_agent_type_literal():
+    from models import PolicyTask
+
     with pytest.raises(Exception):
-        CritiqueResult(severity="catastrophic")
+        PolicyTask(task_id="x", description="y", agent_type="wizard")

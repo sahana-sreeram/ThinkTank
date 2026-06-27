@@ -5,17 +5,14 @@ graph below. A pure-Python fallback executor mirrors the same topology so the
 workflow runs even if langgraph is unavailable (e.g. minimal CI).
 
     START
-      -> plan_policy            (objective + stakeholders + tasks)
-      -> stakeholder_research   (parallel-capable; cited findings)
+      -> plan_policy            (objective + stakeholders + skill-assigned tasks)
+      -> research               (objective cited evidence)
+      -> stakeholder_research   (per-perspective; cited findings)
       -> synthesize_research
       -> implementation_and_recommendation
-      -> red_team_review
-      -> should_revise? --yes--> revise_recommendation --> red_team_review
-                       \--no---> run_forecast
+      -> run_forecast
       -> finalize_result
       -> END
-
-Revision loops are bounded by config.MAX_REVISION_LOOPS.
 """
 
 from __future__ import annotations
@@ -28,12 +25,9 @@ from orchestrator import (
     node_forecast,
     node_plan_policy,
     node_recommend,
-    node_red_team,
     node_research,
-    node_revise,
     node_stakeholder_research,
     node_synthesize,
-    should_revise,
 )
 
 
@@ -48,8 +42,6 @@ def build_graph():
     builder.add_node("stakeholder_research", node_stakeholder_research)
     builder.add_node("synthesize_research", node_synthesize)
     builder.add_node("implementation_and_recommendation", node_recommend)
-    builder.add_node("red_team_review", node_red_team)
-    builder.add_node("revise_recommendation", node_revise)
     builder.add_node("run_forecast", node_forecast)
     builder.add_node("finalize_result", node_finalize)
 
@@ -58,13 +50,7 @@ def build_graph():
     builder.add_edge("research", "stakeholder_research")
     builder.add_edge("stakeholder_research", "synthesize_research")
     builder.add_edge("synthesize_research", "implementation_and_recommendation")
-    builder.add_edge("implementation_and_recommendation", "red_team_review")
-    builder.add_conditional_edges(
-        "red_team_review",
-        should_revise,
-        {"revise": "revise_recommendation", "forecast": "run_forecast"},
-    )
-    builder.add_edge("revise_recommendation", "red_team_review")
+    builder.add_edge("implementation_and_recommendation", "run_forecast")
     builder.add_edge("run_forecast", "finalize_result")
     builder.add_edge("finalize_result", END)
 
@@ -78,10 +64,6 @@ def _run_fallback(state: PolicyState) -> PolicyState:
     node_stakeholder_research(state)
     node_synthesize(state)
     node_recommend(state)
-    node_red_team(state)
-    while should_revise(state) == "revise":
-        node_revise(state)
-        node_red_team(state)
     node_forecast(state)
     node_finalize(state)
     return state

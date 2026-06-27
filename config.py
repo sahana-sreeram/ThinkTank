@@ -40,14 +40,24 @@ def _flag(name: str, default: bool) -> bool:
 # three workstreams can turn their own piece "real" without forcing the others.
 MOCK_MODE = _flag("POLICY_MOCK_MODE", True)
 MOCK_DIRECTOR = _flag("POLICY_MOCK_DIRECTOR", MOCK_MODE)   # Person A
-MOCK_RESEARCH = _flag("POLICY_MOCK_RESEARCH", MOCK_MODE)   # Person B
+MOCK_RESEARCH = _flag("POLICY_MOCK_RESEARCH", MOCK_MODE)   # Person B (agent reasoning)
 MOCK_ANALYSIS = _flag("POLICY_MOCK_ANALYSIS", MOCK_MODE)   # Person C (impl + red-team)
+# Evidence retrieval is separate from research *reasoning*: this gates the sources/
+# connectors + Chroma cache, so real citations can flow even while agents are mock.
+MOCK_RETRIEVAL = _flag("POLICY_MOCK_RETRIEVAL", MOCK_MODE)  # Person B (sources/RAG)
 
 MAX_SCHEMA_RETRIES = 2  # local re-asks before considering escalation
 
 # --- Retrieval (P2) --------------------------------------------------------
 DEFAULT_TOP_K = 6
 MAX_CHUNKS_PER_SOURCE = 2
+# Hybrid evidence retrieval: query the local Chroma cache first, then fetch live
+# from external connectors (sources/) when the cache is thin, caching results for
+# next time. Set POLICY_LIVE_FETCH=0 to run cache-only (fully offline).
+LIVE_FETCH = _flag("POLICY_LIVE_FETCH", True)
+# Soft global budget of evidence items pulled per live fetch (divided across
+# connectors so no single source dominates).
+EVIDENCE_FETCH_BUDGET = int(os.getenv("POLICY_EVIDENCE_BUDGET", "18"))
 
 # --- Storage (P4) ----------------------------------------------------------
 RUNS_DB_PATH = "policy_runs.db"  # SQLite: runs, tasks, outputs, forecasts, events
